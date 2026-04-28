@@ -6,6 +6,7 @@ import os
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from routes.config import router as config_router
 from routes.webhook import router as webhook_router
@@ -17,10 +18,26 @@ logging.basicConfig(
     format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
 )
 
+cors_origins = os.getenv("CORS_ORIGINS", "")
+if cors_origins:
+    origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
+    if origins == ["*"]:
+        origins = ["*"]
+else:
+    origins = []
+
 app = FastAPI(
     title="Bolna → Slack Integration",
     description="Middleware that receives Bolna post-call webhooks and forwards alerts to Slack.",
     version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=False if origins == ["*"] else True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 app.include_router(config_router)
