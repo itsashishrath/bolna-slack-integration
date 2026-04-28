@@ -15,6 +15,21 @@ router = APIRouter(tags=["webhook"])
 
 _CONFIG_PATH = Path("storage/config.json")
 
+# In-memory deduplication — resets on restart, which is fine since
+# duplicate deliveries from Bolna happen within the same session window.
+_seen_call_ids: set[str] = set()
+_MAX_SEEN = 500  # cap to prevent unbounded growth; evict all when hit
+
+
+def _is_duplicate(call_id: str) -> bool:
+    global _seen_call_ids
+    if call_id in _seen_call_ids:
+        return True
+    if len(_seen_call_ids) >= _MAX_SEEN:
+        _seen_call_ids = set()
+    _seen_call_ids.add(call_id)
+    return False
+
 
 def _get_slack_url() -> str:
     if not _CONFIG_PATH.exists():
@@ -32,6 +47,18 @@ def _get_slack_url() -> str:
 
 @router.post("/webhook", response_model=MessageResponse)
 async def receive_webhook(payload: BolnaWebhookPayload) -> MessageResponse:
+    # Only forward calls that Bolna marked as completed
+    if payload.status != "completed":
+        logger.info(
+            "Skipping call_id=%s — status=%r (not completed)", payload.id, payload.status
+        )
+        return MessageResponse(message=f"Call status '{payload.status}' — skipped")
+
+    # Drop duplicate deliveries for the same call
+    if _is_duplicate(payload.id):
+        logger.warning("Duplicate call_id=%s — skipping", payload.id)
+        return MessageResponse(message="Duplicate call — already forwarded to Slack")
+
     slack_url = _get_slack_url()
 
     try:
