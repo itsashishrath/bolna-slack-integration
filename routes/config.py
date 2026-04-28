@@ -75,3 +75,13 @@ def save_config(body: ConfigRequest) -> MessageResponse:
 def get_config() -> ConfigResponse:
     data = _read_config()
     return ConfigResponse(**data)
+
+
+@router.get("/status", tags=["health"])
+def get_status() -> dict:
+    """Returns which parts of the integration are configured — safe to call at any time."""
+    data = _load_raw() or {}
+    return {
+        "slack_configured": bool(data.get("slack_webhook_url")),
+        "bolna_configured": bool(data.get("bolna_api_key")),
+    }

@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from routes.bolna import router as bolna_router
 from routes.config import router as config_router
 from routes.webhook import router as webhook_router
 
@@ -42,6 +43,7 @@ app.add_middleware(
 
 app.include_router(config_router)
 app.include_router(webhook_router)
+app.include_router(bolna_router)
 
 
 @app.get("/", tags=["health"])
