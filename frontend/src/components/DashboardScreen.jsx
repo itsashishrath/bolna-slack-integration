@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { getAgents, getAgentConfigs, makeCall, saveAgentSlackWebhook, deleteAgentSlackWebhook, saveBolnaApiKey } from '../api/client.js';
+import { getAgents, getAgentConfigs, makeCall, saveAgentSlackWebhook, deleteAgentSlackWebhook, saveBolnaApiKey, resetConfig } from '../api/client.js';
 import StatusBadge from './StatusBadge.jsx';
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ onReset }) {
   const [agents, setAgents] = useState([]);
   const [slackMap, setSlackMap] = useState({});   // agentId → AgentConfigEntry
   const [loading, setLoading] = useState(true);
@@ -38,6 +38,14 @@ export default function DashboardScreen() {
   }, []);
 
   const configuredCount = Object.keys(slackMap).length;
+
+  // ── Full reset ─────────────────────────────────────────────────────────────
+
+  const handleReset = async () => {
+    if (!window.confirm('This will clear all saved keys and webhook URLs. Continue?')) return;
+    await resetConfig();
+    onReset();
+  };
 
   // ── Bolna API key update ───────────────────────────────────────────────────
 
@@ -124,7 +132,12 @@ export default function DashboardScreen() {
             <h2>Integration active</h2>
             <p>Bolna is connected. {configuredCount} agent{configuredCount !== 1 ? 's' : ''} sending Slack alerts.</p>
           </div>
-          <StatusBadge text="Live" variant="success" />
+          <div className="card-header-actions">
+            <StatusBadge text="Live" variant="success" />
+            <button className="btn-reset" onClick={handleReset} title="Reset all configuration">
+              <ResetIcon /> Reset
+            </button>
+          </div>
         </div>
 
         <div className="status-row">
@@ -315,6 +328,15 @@ function maskUrl(url) {
     const parts = url.split('/');
     return parts.slice(0, 5).join('/') + '/••••••••';
   } catch { return url; }
+}
+
+function ResetIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </svg>
+  );
 }
 
 function TrashIcon() {

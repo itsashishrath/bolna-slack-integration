@@ -55,7 +55,7 @@ function App() {
           <AgentSetupScreen onDone={() => setStage('dashboard')} />
         )}
 
-        {stage === 'dashboard' && <DashboardScreen />}
+        {stage === 'dashboard' && <DashboardScreen onReset={() => setStage('bolna-setup')} />}
       </main>
     </div>
   );

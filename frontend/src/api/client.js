@@ -25,6 +25,10 @@ export async function getStatus() {
 
 // ── Per-agent Slack config ────────────────────────────────────────────────────
 
+export async function resetConfig() {
+  return request('/config/reset', { method: 'DELETE' });
+}
+
 export async function getAgentConfigs() {
   return request('/config/agents');
 }

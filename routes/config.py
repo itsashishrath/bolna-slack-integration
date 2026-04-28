@@ -42,6 +42,22 @@ def update_last_call_id(call_id: str) -> None:
     logger.debug("last_call_id updated to %s", call_id)
 
 
+# ── DELETE /config/reset ───────────────────────────────────────────────────────
+
+@router.delete("/config/reset", response_model=MessageResponse)
+def reset_config() -> MessageResponse:
+    _write_config({
+        "slack_webhook_url": None,
+        "configured_at": None,
+        "last_call_id": None,
+        "bolna_api_key": None,
+        "bolna_api_key_set_at": None,
+        "agents": {},
+    })
+    logger.info("Config reset to empty state")
+    return MessageResponse(message="Config reset successfully")
+
+
 # ── GET /status ────────────────────────────────────────────────────────────────
 
 @router.get("/status", tags=["health"])
