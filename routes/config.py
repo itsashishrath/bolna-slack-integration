@@ -34,6 +34,13 @@ def _read_config() -> dict:
         if not _CONFIG_PATH.exists():
             raise HTTPException(status_code=404, detail="No config found. Call POST /config first.")
         raise HTTPException(status_code=500, detail="config.json is corrupted.")
+
+    if not data.get("slack_webhook_url") or not data.get("configured_at"):
+        raise HTTPException(
+            status_code=404,
+            detail="Config incomplete. Call POST /config with your Slack webhook URL."
+        )
+
     return data
 
 
