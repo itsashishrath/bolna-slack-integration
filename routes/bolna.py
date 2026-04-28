@@ -12,10 +12,9 @@ from models.schemas import (
     BolnaApiKeyRequest,
     InitiateCallRequest,
     MessageResponse,
-    SetupWebhookResponse,
 )
 from routes.config import _load_raw, _write_config
-from services.bolna import get_all_agents, initiate_call, setup_agent_webhook
+from services.bolna import get_all_agents, initiate_call
 
 logger = logging.getLogger(__name__)
 
@@ -59,38 +58,6 @@ async def list_agents() -> list[AgentSummary]:
         raise HTTPException(status_code=502, detail="Could not reach Bolna API.")
 
     return [AgentSummary(id=a["id"], agent_name=a["agent_name"]) for a in agents]
-
-
-# ── POST /bolna/agents/{agent_id}/setup-webhook ────────────────────────────────
-
-@router.post("/agents/{agent_id}/setup-webhook", response_model=SetupWebhookResponse)
-async def setup_webhook(agent_id: str) -> SetupWebhookResponse:
-    api_key = _get_api_key()
-
-    server_host = os.getenv("SERVER_HOST", "").rstrip("/")
-    if not server_host:
-        raise HTTPException(
-            status_code=500,
-            detail="SERVER_HOST is not set in .env. Cannot build the webhook URL.",
-        )
-
-    webhook_url = f"{server_host}/webhook"
-
-    try:
-        result = await setup_agent_webhook(api_key, agent_id, webhook_url)
-    except httpx.HTTPStatusError as exc:
-        logger.error(
-            "Bolna returned %s setting webhook for agent %s",
-            exc.response.status_code,
-            agent_id,
-        )
-        raise HTTPException(status_code=502, detail="Bolna API error while updating agent.")
-    except httpx.RequestError as exc:
-        logger.error("Network error setting webhook: %s", exc)
-        raise HTTPException(status_code=502, detail="Could not reach Bolna API.")
-
-    logger.info("Webhook configured for agent_id=%s → %s", agent_id, webhook_url)
-    return SetupWebhookResponse(**result)
 
 
 # ── POST /bolna/call ───────────────────────────────────────────────────────────

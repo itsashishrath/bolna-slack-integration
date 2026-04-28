@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getAgents, getAgentConfigs, setupAgentWebhook, makeCall, saveAgentSlackWebhook, deleteAgentSlackWebhook } from '../api/client.js';
+import { getAgents, getAgentConfigs, makeCall, saveAgentSlackWebhook, deleteAgentSlackWebhook } from '../api/client.js';
 import StatusBadge from './StatusBadge.jsx';
 
 export default function DashboardScreen() {
-  const [agents, setAgents] = useState([]);       // [{id, agent_name}]
+  const [agents, setAgents] = useState([]);
   const [slackMap, setSlackMap] = useState({});   // agentId → AgentConfigEntry
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
-
-  // agentId → 'loading' | 'done' | 'error'
-  const [bolnaWebhookState, setBolnaWebhookState] = useState({});
 
   // agentId → { open, value, saving, error }
   const [editState, setEditState] = useState({});
@@ -40,20 +37,7 @@ export default function DashboardScreen() {
 
   const configuredCount = Object.keys(slackMap).length;
 
-  // ── Bolna webhook setup ────────────────────────────────────────────────────
-
-  const handleSetBolnaWebhook = async (agentId) => {
-    setBolnaWebhookState((s) => ({ ...s, [agentId]: 'loading' }));
-    const result = await setupAgentWebhook(agentId);
-    setBolnaWebhookState((s) => ({ ...s, [agentId]: result.ok ? 'done' : 'error' }));
-  };
-
   // ── Slack webhook edit ─────────────────────────────────────────────────────
-
-  const handleDeleteSlack = async (agentId) => {
-    await deleteAgentSlackWebhook(agentId);
-    setSlackMap((m) => { const n = { ...m }; delete n[agentId]; return n; });
-  };
 
   const openEdit = (agentId, currentUrl = '') =>
     setEditState((s) => ({ ...s, [agentId]: { open: true, value: currentUrl, saving: false, error: '' } }));
@@ -78,6 +62,11 @@ export default function DashboardScreen() {
     } else {
       setEdit(agentId, { saving: false, error: result.data?.detail || 'Failed to save.' });
     }
+  };
+
+  const handleDeleteSlack = async (agentId) => {
+    await deleteAgentSlackWebhook(agentId);
+    setSlackMap((m) => { const n = { ...m }; delete n[agentId]; return n; });
   };
 
   // ── Call ───────────────────────────────────────────────────────────────────
@@ -129,9 +118,7 @@ export default function DashboardScreen() {
         <div className="card-header">
           <div>
             <h2>Agents</h2>
-            <p>
-              Set the Bolna post-call webhook and a Slack channel per agent.
-            </p>
+            <p>Manage the Slack alert channel for each agent.</p>
           </div>
           {!loading && agents.length > 0 && (
             <StatusBadge text={`${agents.length} agent${agents.length !== 1 ? 's' : ''}`} variant="neutral" />
@@ -153,31 +140,17 @@ export default function DashboardScreen() {
           <div className="agents-list">
             {agents.map((agent) => {
               const slack = slackMap[agent.id];
-              const bws = bolnaWebhookState[agent.id];
               const edit = editState[agent.id] || {};
 
               return (
                 <div key={agent.id} className="agent-item agent-item-rich">
-                  {/* Top row: name + actions */}
                   <div className="agent-item-top">
                     <div className="agent-info">
                       <span className="agent-name">{agent.agent_name}</span>
                       <span className="agent-id">{agent.id}</span>
                     </div>
-                    <div className="agent-action">
-                      {bws === 'done' && <span className="inline-success">Bolna webhook ✓</span>}
-                      {bws === 'error' && <span className="inline-error">Failed</span>}
-                      <button
-                        className="btn-outline"
-                        onClick={() => handleSetBolnaWebhook(agent.id)}
-                        disabled={bws === 'loading' || bws === 'done'}
-                      >
-                        {bws === 'loading' ? 'Setting…' : bws === 'done' ? 'Set ✓' : 'Set Bolna Webhook'}
-                      </button>
-                    </div>
                   </div>
 
-                  {/* Slack row */}
                   <div className="agent-slack-row">
                     {slack && !edit.open ? (
                       <>
@@ -256,6 +229,7 @@ export default function DashboardScreen() {
                 <option key={a.id} value={a.id}>{a.agent_name}</option>
               ))}
             </select>
+
             {!slackMap[selectedAgent] && (
               <p className="inline-error">
                 No Slack webhook configured for this agent — set one above first.

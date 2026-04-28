@@ -53,10 +53,6 @@ export async function getAgents() {
   return request('/bolna/agents');
 }
 
-export async function setupAgentWebhook(agentId) {
-  return request(`/bolna/agents/${agentId}/setup-webhook`, { method: 'POST' });
-}
-
 export async function makeCall(agentId) {
   return request('/bolna/call', {
     method: 'POST',

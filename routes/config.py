@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter
 
 from models.schemas import AgentConfigEntry, AgentConfigRequest, MessageResponse
+from services.bolna import setup_agent_webhook
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +62,7 @@ def get_status() -> dict:
 # ── POST /config/agent ─────────────────────────────────────────────────────────
 
 @router.post("/config/agent", response_model=MessageResponse)
-def save_agent_config(body: AgentConfigRequest) -> MessageResponse:
+async def save_agent_config(body: AgentConfigRequest) -> MessageResponse:
     data = _load_raw() or {}
     agents = data.get("agents", {})
     agents[body.agent_id] = {
@@ -70,6 +72,26 @@ def save_agent_config(body: AgentConfigRequest) -> MessageResponse:
     data["agents"] = agents
     _write_config(data)
     logger.info("Slack webhook saved for agent_id=%s", body.agent_id)
+
+    # Auto-register this server as the Bolna post-call webhook for the agent
+    api_key = data.get("bolna_api_key")
+    server_host = os.getenv("SERVER_HOST", "").rstrip("/")
+    if api_key and server_host:
+        try:
+            await setup_agent_webhook(api_key, body.agent_id, f"{server_host}/webhook")
+            logger.info("Bolna webhook auto-configured for agent_id=%s", body.agent_id)
+        except Exception as exc:
+            logger.warning(
+                "Slack config saved but Bolna webhook auto-config failed for agent %s: %s",
+                body.agent_id, exc,
+            )
+    else:
+        logger.warning(
+            "Skipping Bolna webhook auto-config for agent %s — %s",
+            body.agent_id,
+            "BOLNA_API_KEY missing" if not api_key else "SERVER_HOST not set in .env",
+        )
+
     return MessageResponse(message=f"Slack webhook saved for agent {body.agent_id}")
 
 
