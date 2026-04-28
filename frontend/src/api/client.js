@@ -36,6 +36,10 @@ export async function saveAgentSlackWebhook(agentId, slackWebhookUrl) {
   });
 }
 
+export async function deleteAgentSlackWebhook(agentId) {
+  return request(`/config/agent/${agentId}/slack`, { method: 'DELETE' });
+}
+
 // ── Bolna ─────────────────────────────────────────────────────────────────────
 
 export async function saveBolnaApiKey(apiKey) {

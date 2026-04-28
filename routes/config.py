@@ -73,6 +73,20 @@ def save_agent_config(body: AgentConfigRequest) -> MessageResponse:
     return MessageResponse(message=f"Slack webhook saved for agent {body.agent_id}")
 
 
+# ── DELETE /config/agent/{agent_id}/slack ─────────────────────────────────────
+
+@router.delete("/config/agent/{agent_id}/slack", response_model=MessageResponse)
+def delete_agent_slack(agent_id: str) -> MessageResponse:
+    data = _load_raw() or {}
+    agents = data.get("agents", {})
+    if agent_id in agents:
+        del agents[agent_id]
+        data["agents"] = agents
+        _write_config(data)
+        logger.info("Slack webhook removed for agent_id=%s", agent_id)
+    return MessageResponse(message=f"Slack webhook removed for agent {agent_id}")
+
+
 # ── GET /config/agents ─────────────────────────────────────────────────────────
 
 @router.get("/config/agents", response_model=list[AgentConfigEntry])

@@ -528,6 +528,25 @@ button, input, select { font: inherit; }
 
 .btn-text:hover { color: #4338ca; }
 
+.btn-icon-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+
+.btn-icon-danger:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
 .setup-continue {
   margin-top: 24px;
   padding-top: 20px;
