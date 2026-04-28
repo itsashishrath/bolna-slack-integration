@@ -623,6 +623,21 @@ button, input, select { font: inherit; }
   font-weight: 500;
 }
 
+.api-key-error-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.api-key-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────────── */
 
 @media (max-width: 520px) {

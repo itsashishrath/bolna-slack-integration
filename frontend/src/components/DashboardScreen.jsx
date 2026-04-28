@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAgents, getAgentConfigs, makeCall, saveAgentSlackWebhook, deleteAgentSlackWebhook } from '../api/client.js';
+import { getAgents, getAgentConfigs, makeCall, saveAgentSlackWebhook, deleteAgentSlackWebhook, saveBolnaApiKey } from '../api/client.js';
 import StatusBadge from './StatusBadge.jsx';
 
 export default function DashboardScreen() {
@@ -7,6 +7,8 @@ export default function DashboardScreen() {
   const [slackMap, setSlackMap] = useState({});   // agentId → AgentConfigEntry
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
+
+  const [keyEdit, setKeyEdit] = useState({ open: false, value: '', saving: false, error: '' });
 
   // agentId → { open, value, saving, error }
   const [editState, setEditState] = useState({});
@@ -36,6 +38,34 @@ export default function DashboardScreen() {
   }, []);
 
   const configuredCount = Object.keys(slackMap).length;
+
+  // ── Bolna API key update ───────────────────────────────────────────────────
+
+  const handleUpdateApiKey = async () => {
+    const key = keyEdit.value.trim();
+    if (!key) {
+      setKeyEdit((k) => ({ ...k, error: 'Please enter your Bolna API key.' }));
+      return;
+    }
+    setKeyEdit((k) => ({ ...k, saving: true, error: '' }));
+    const result = await saveBolnaApiKey(key);
+    if (!result.ok) {
+      setKeyEdit((k) => ({ ...k, saving: false, error: 'Failed to save. Please try again.' }));
+      return;
+    }
+    // Key saved — retry fetching agents
+    setKeyEdit({ open: false, value: '', saving: false, error: '' });
+    setFetchError('');
+    setLoading(true);
+    const agentsRes = await getAgents();
+    setLoading(false);
+    if (agentsRes.ok && agentsRes.data) {
+      setAgents(agentsRes.data);
+      if (agentsRes.data.length > 0) setSelectedAgent(agentsRes.data[0].id);
+    } else {
+      setFetchError('Still failing. Double-check your Bolna API key and try again.');
+    }
+  };
 
   // ── Slack webhook edit ─────────────────────────────────────────────────────
 
@@ -131,7 +161,36 @@ export default function DashboardScreen() {
             <span>Fetching agents…</span>
           </div>
         )}
-        {fetchError && <p className="field-error">{fetchError}</p>}
+        {fetchError && (
+          <div className="api-key-error-block">
+            <p className="field-error">{fetchError}</p>
+            {!keyEdit.open ? (
+              <button className="btn-outline" onClick={() => setKeyEdit((k) => ({ ...k, open: true }))}>
+                Update Bolna API Key
+              </button>
+            ) : (
+              <div className="api-key-edit-form">
+                <input
+                  type="password"
+                  className="agent-url-input"
+                  placeholder="bn-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  value={keyEdit.value}
+                  onChange={(e) => setKeyEdit((k) => ({ ...k, value: e.target.value, error: '' }))}
+                  autoFocus
+                />
+                {keyEdit.error && <p className="field-error">{keyEdit.error}</p>}
+                <div className="slack-edit-actions">
+                  <button className="btn-outline" onClick={handleUpdateApiKey} disabled={keyEdit.saving}>
+                    {keyEdit.saving ? 'Saving…' : 'Save & retry'}
+                  </button>
+                  <button className="btn-text" onClick={() => setKeyEdit({ open: false, value: '', saving: false, error: '' })}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {!loading && !fetchError && agents.length === 0 && (
           <p className="muted">No agents found on your Bolna account.</p>
         )}
