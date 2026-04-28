@@ -425,6 +425,34 @@ button, input, select { font: inherit; }
 .status-card h2 { margin: 0 0 10px; }
 .status-card p  { margin: 0; color: #64748b; }
 
+.wake-card {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.wake-message {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 0.95rem;
+  min-height: 1.4em;
+}
+
+.progress-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 24px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  border-radius: 999px;
+  transition: width 0.95s linear;
+}
+
 /* ── Note block ─────────────────────────────────────────────────────────────── */
 
 .note-block {

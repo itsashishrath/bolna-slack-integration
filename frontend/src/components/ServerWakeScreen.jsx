@@ -1,55 +1,87 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getHealth } from '../api/client.js';
 
-export default function ServerWakeScreen({ onHealthy }) {
-  const [elapsed, setElapsed] = useState(0);
-  const [message, setMessage] = useState('Starting up the server, this may take a few seconds...');
+const TOTAL_SECONDS = 120;
+const RETRY_EVERY   = 10;                            // seconds between health checks
+const MAX_ATTEMPTS  = TOTAL_SECONDS / RETRY_EVERY;   // 12
 
-  const status = useMemo(() => {
-    if (elapsed >= 30) return 'timeout';
-    if (elapsed >= 10) return 'waiting';
-    return 'starting';
-  }, [elapsed]);
+const MESSAGES = [
+  { at:  0, text: 'Starting up the server…' },
+  { at: 30, text: 'Server is warming up, hang tight…' },
+  { at: 60, text: 'Taking a little longer than usual…' },
+  { at: 90, text: 'Almost ready, just a moment more…' },
+];
+
+function messageFor(elapsed) {
+  return [...MESSAGES].reverse().find((m) => elapsed >= m.at).text;
+}
+
+export default function ServerWakeScreen({ onHealthy }) {
+  const [elapsed, setElapsed]   = useState(0);
+  const [timedOut, setTimedOut] = useState(false);
+
+  const activeRef   = useRef(true);
+  const attemptsRef = useRef(0);
+  const tickerRef   = useRef(null);
+  const pollerRef   = useRef(null);
 
   useEffect(() => {
-    let active = true;
-    let intervalId;
+    activeRef.current = true;
 
-    const poll = async () => {
+    // Advance the bar every second
+    tickerRef.current = setInterval(() => {
+      setElapsed((e) => Math.min(e + 1, TOTAL_SECONDS));
+    }, 1000);
+
+    const tryConnect = async () => {
+      if (!activeRef.current) return;
+      attemptsRef.current += 1;
+
       const result = await getHealth();
-      if (!active) return;
+      if (!activeRef.current) return;
 
       if (result.ok) {
+        clearInterval(tickerRef.current);
+        clearInterval(pollerRef.current);
         onHealthy();
         return;
       }
 
-      if (status === 'waiting') {
-        setMessage("Still starting up — this may take a moment. If it doesn't respond, refresh the page.");
-      }
-      if (status === 'timeout') {
-        setMessage("Server is taking longer than expected. Please refresh and try again.");
-        clearInterval(intervalId);
+      if (attemptsRef.current >= MAX_ATTEMPTS) {
+        clearInterval(tickerRef.current);
+        clearInterval(pollerRef.current);
+        setTimedOut(true);
       }
     };
 
-    poll();
-    intervalId = setInterval(() => {
-      setElapsed((value) => value + 3);
-      poll();
-    }, 3000);
+    tryConnect();
+    pollerRef.current = setInterval(tryConnect, RETRY_EVERY * 1000);
 
     return () => {
-      active = false;
-      clearInterval(intervalId);
+      activeRef.current = false;
+      clearInterval(tickerRef.current);
+      clearInterval(pollerRef.current);
     };
-  }, [onHealthy, status]);
+  }, [onHealthy]);
+
+  if (timedOut) {
+    return (
+      <div className="status-card wake-card">
+        <h2>Server unavailable</h2>
+        <p>The server didn't respond after several attempts. Please refresh the page and try again.</p>
+      </div>
+    );
+  }
+
+  const progress = (elapsed / TOTAL_SECONDS) * 100;
 
   return (
-    <div className="status-card">
-      <h2>Server wake-up check</h2>
-      <p>{message}</p>
-      <div className="spinner" />
+    <div className="status-card wake-card">
+      <h2>Connecting to server</h2>
+      <p className="wake-message">{messageFor(elapsed)}</p>
+      <div className="progress-bar-wrap">
+        <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+      </div>
     </div>
   );
 }
