@@ -23,18 +23,16 @@ export async function getStatus() {
   return request('/status');
 }
 
-// ── Slack config ──────────────────────────────────────────────────────────────
+// ── Per-agent Slack config ────────────────────────────────────────────────────
 
-export async function getConfig() {
-  const result = await request('/config');
-  if (result.status === 404) return { ok: false, data: null };
-  return result;
+export async function getAgentConfigs() {
+  return request('/config/agents');
 }
 
-export async function saveConfig(slackWebhookUrl) {
-  return request('/config', {
+export async function saveAgentSlackWebhook(agentId, slackWebhookUrl) {
+  return request('/config/agent', {
     method: 'POST',
-    body: JSON.stringify({ slack_webhook_url: slackWebhookUrl }),
+    body: JSON.stringify({ agent_id: agentId, slack_webhook_url: slackWebhookUrl }),
   });
 }
 

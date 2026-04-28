@@ -18,16 +18,16 @@ export default function BolnaSetupScreen({ onApiKeySaved }) {
   return (
     <div className="setup-wrap">
       <div className="step-indicator">
-        <div className="step done"><span>✓</span> Slack Webhook</div>
-        <div className="step-line active-line" />
-        <div className="step active"><span>2</span> Bolna API Key</div>
+        <div className="step active"><span>1</span> Bolna API Key</div>
+        <div className="step-line" />
+        <div className="step"><span>2</span> Configure Agents</div>
       </div>
 
       <div className="card">
         <div className="card-header">
           <div>
             <h2>Connect Bolna</h2>
-            <p>Enter your Bolna API key to manage agents and initiate calls.</p>
+            <p>Enter your Bolna API key to fetch agents and manage webhooks.</p>
           </div>
         </div>
 
@@ -43,7 +43,7 @@ export default function BolnaSetupScreen({ onApiKeySaved }) {
           />
           {error && <p className="field-error">{error}</p>}
           <button type="submit" disabled={loading}>
-            {loading ? 'Saving…' : 'Save & go to dashboard →'}
+            {loading ? 'Saving…' : 'Save & continue →'}
           </button>
         </form>
       </div>

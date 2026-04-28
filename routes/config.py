@@ -5,9 +5,9 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
-from models.schemas import ConfigRequest, ConfigResponse, MessageResponse
+from models.schemas import AgentConfigEntry, AgentConfigRequest, MessageResponse
 
 logger = logging.getLogger(__name__)
 
@@ -27,23 +27,6 @@ def _load_raw() -> dict | None:
         return None
 
 
-def _read_config() -> dict:
-    """Return parsed config.json or raise HTTPException if missing/corrupt."""
-    data = _load_raw()
-    if data is None:
-        if not _CONFIG_PATH.exists():
-            raise HTTPException(status_code=404, detail="No config found. Call POST /config first.")
-        raise HTTPException(status_code=500, detail="config.json is corrupted.")
-
-    if not data.get("slack_webhook_url") or not data.get("configured_at"):
-        raise HTTPException(
-            status_code=404,
-            detail="Config incomplete. Call POST /config with your Slack webhook URL."
-        )
-
-    return data
-
-
 def _write_config(data: dict) -> None:
     _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     _CONFIG_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -57,31 +40,47 @@ def update_last_call_id(call_id: str) -> None:
     logger.debug("last_call_id updated to %s", call_id)
 
 
-@router.post("/config", response_model=MessageResponse)
-def save_config(body: ConfigRequest) -> MessageResponse:
-    existing = _load_raw() or {}
-    data = {
-        "slack_webhook_url": str(body.slack_webhook_url),
-        "configured_at": datetime.now(timezone.utc).isoformat(),
-        # Preserve existing last_call_id if the URL is being updated; start null otherwise.
-        "last_call_id": existing.get("last_call_id", None),
-    }
-    _write_config(data)
-    logger.info("Config saved successfully")
-    return MessageResponse(message="Config saved successfully")
-
-
-@router.get("/config", response_model=ConfigResponse)
-def get_config() -> ConfigResponse:
-    data = _read_config()
-    return ConfigResponse(**data)
-
+# ── GET /status ────────────────────────────────────────────────────────────────
 
 @router.get("/status", tags=["health"])
 def get_status() -> dict:
     """Returns which parts of the integration are configured — safe to call at any time."""
     data = _load_raw() or {}
+    agents = data.get("agents", {})
+    any_agent_configured = any(
+        bool(cfg.get("slack_webhook_url")) for cfg in agents.values()
+    )
     return {
-        "slack_configured": bool(data.get("slack_webhook_url")),
         "bolna_configured": bool(data.get("bolna_api_key")),
+        "any_agent_configured": any_agent_configured,
+        "configured_agent_ids": list(agents.keys()),
     }
+
+
+# ── POST /config/agent ─────────────────────────────────────────────────────────
+
+@router.post("/config/agent", response_model=MessageResponse)
+def save_agent_config(body: AgentConfigRequest) -> MessageResponse:
+    data = _load_raw() or {}
+    agents = data.get("agents", {})
+    agents[body.agent_id] = {
+        "slack_webhook_url": str(body.slack_webhook_url),
+        "configured_at": datetime.now(timezone.utc).isoformat(),
+    }
+    data["agents"] = agents
+    _write_config(data)
+    logger.info("Slack webhook saved for agent_id=%s", body.agent_id)
+    return MessageResponse(message=f"Slack webhook saved for agent {body.agent_id}")
+
+
+# ── GET /config/agents ─────────────────────────────────────────────────────────
+
+@router.get("/config/agents", response_model=list[AgentConfigEntry])
+def get_agent_configs() -> list[AgentConfigEntry]:
+    data = _load_raw() or {}
+    agents = data.get("agents", {})
+    return [
+        AgentConfigEntry(agent_id=aid, **cfg)
+        for aid, cfg in agents.items()
+        if cfg.get("slack_webhook_url")
+    ]

@@ -1,50 +1,33 @@
 import { useState } from 'react';
-import { getStatus, saveConfig, saveBolnaApiKey } from './api/client';
+import { getStatus, saveBolnaApiKey } from './api/client';
 import ServerWakeScreen from './components/ServerWakeScreen.jsx';
-import SetupScreen from './components/SetupScreen.jsx';
 import BolnaSetupScreen from './components/BolnaSetupScreen.jsx';
+import AgentSetupScreen from './components/AgentSetupScreen.jsx';
 import DashboardScreen from './components/DashboardScreen.jsx';
 
-// stages: waking | loading | slack-setup | bolna-setup | dashboard
+// stages: waking | loading | bolna-setup | agent-setup | dashboard
 
 function App() {
   const [stage, setStage] = useState('waking');
-  const [error, setError] = useState('');
 
   const loadStatus = async () => {
     setStage('loading');
     const result = await getStatus();
-    if (!result.ok) {
-      setStage('slack-setup');
-      return;
-    }
-    const { slack_configured, bolna_configured } = result.data;
-    if (!slack_configured) {
-      setStage('slack-setup');
-    } else if (!bolna_configured) {
+    if (!result.ok) { setStage('bolna-setup'); return; }
+
+    const { bolna_configured, any_agent_configured } = result.data;
+    if (!bolna_configured) {
       setStage('bolna-setup');
+    } else if (!any_agent_configured) {
+      setStage('agent-setup');
     } else {
       setStage('dashboard');
     }
   };
 
-  const handleSlackSaved = async (url) => {
-    setError('');
-    const result = await saveConfig(url);
-    if (result.ok) {
-      setStage('bolna-setup');
-      return true;
-    }
-    setError(result.data?.detail || 'Unable to save config.');
-    return false;
-  };
-
   const handleBolnaSaved = async (apiKey) => {
     const result = await saveBolnaApiKey(apiKey);
-    if (result.ok) {
-      setStage('dashboard');
-      return true;
-    }
+    if (result.ok) { setStage('agent-setup'); return true; }
     return false;
   };
 
@@ -61,17 +44,15 @@ function App() {
         {stage === 'waking' && <ServerWakeScreen onHealthy={loadStatus} />}
 
         {stage === 'loading' && (
-          <div className="status-card">
-            <div className="spinner" />
-          </div>
-        )}
-
-        {stage === 'slack-setup' && (
-          <SetupScreen onConfigSaved={handleSlackSaved} initialError={error} />
+          <div className="status-card"><div className="spinner" /></div>
         )}
 
         {stage === 'bolna-setup' && (
           <BolnaSetupScreen onApiKeySaved={handleBolnaSaved} />
+        )}
+
+        {stage === 'agent-setup' && (
+          <AgentSetupScreen onDone={() => setStage('dashboard')} />
         )}
 
         {stage === 'dashboard' && <DashboardScreen />}

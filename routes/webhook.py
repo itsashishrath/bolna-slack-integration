@@ -13,14 +13,22 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["webhook"])
 
 
-def _get_slack_url() -> str:
+def _get_slack_url_for_agent(agent_id: str) -> str:
+    """Look up the Slack webhook URL for a specific agent. Raises 503 if not configured."""
     data = _load_raw()
-    if data is None or "slack_webhook_url" not in data:
+    if not data:
         raise HTTPException(
             status_code=503,
-            detail="Integration not configured. Call POST /config first.",
+            detail="Integration not configured. Set up your Bolna API key and agent Slack webhooks.",
         )
-    return data["slack_webhook_url"]
+    agents = data.get("agents", {})
+    agent_cfg = agents.get(agent_id)
+    if not agent_cfg or not agent_cfg.get("slack_webhook_url"):
+        raise HTTPException(
+            status_code=503,
+            detail=f"No Slack webhook configured for agent {agent_id}. Configure it via POST /config/agent.",
+        )
+    return agent_cfg["slack_webhook_url"]
 
 
 def _is_duplicate(call_id: str) -> bool:
@@ -37,10 +45,10 @@ async def receive_webhook(payload: BolnaWebhookPayload) -> MessageResponse:
         return MessageResponse(message=f"Call status '{payload.status}' — skipped")
 
     if _is_duplicate(payload.id):
-        logger.warning("Duplicate call_id=%s — already in config, skipping", payload.id)
+        logger.warning("Duplicate call_id=%s — skipping", payload.id)
         return MessageResponse(message="Duplicate call — already forwarded to Slack")
 
-    slack_url = _get_slack_url()
+    slack_url = _get_slack_url_for_agent(payload.agent_id)
 
     try:
         await send_slack_alert(

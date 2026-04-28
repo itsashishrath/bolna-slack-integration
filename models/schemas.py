@@ -4,9 +4,10 @@ from typing import Optional
 from pydantic import BaseModel, HttpUrl, field_validator
 
 
-# ── Slack config ─────────────────────────────────────────────────────────────
+# ── Per-agent Slack config ────────────────────────────────────────────────────
 
-class ConfigRequest(BaseModel):
+class AgentConfigRequest(BaseModel):
+    agent_id: str
     slack_webhook_url: HttpUrl
 
     @field_validator("slack_webhook_url")
@@ -17,10 +18,10 @@ class ConfigRequest(BaseModel):
         return v
 
 
-class ConfigResponse(BaseModel):
+class AgentConfigEntry(BaseModel):
+    agent_id: str
     slack_webhook_url: str
     configured_at: str
-    last_call_id: Optional[str] = None
 
 
 # ── Bolna config / agents / calls ─────────────────────────────────────────────
@@ -32,10 +33,6 @@ class BolnaApiKeyRequest(BaseModel):
 class AgentSummary(BaseModel):
     id: str
     agent_name: str
-
-
-class SetupWebhookRequest(BaseModel):
-    agent_id: str
 
 
 class SetupWebhookResponse(BaseModel):
@@ -55,7 +52,6 @@ class BolnaWebhookPayload(BaseModel):
     conversation_duration: float
     transcript: str
 
-    # Optional Bolna fields — not used by this integration
     status: Optional[str] = None
     total_cost: Optional[float] = None
     batch_id: Optional[str] = None

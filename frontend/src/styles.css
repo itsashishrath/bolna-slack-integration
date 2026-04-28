@@ -445,6 +445,165 @@ button, input, select { font: inherit; }
 .config-item span   { display: block; color: #667085; font-size: 0.875rem; }
 .config-item strong { display: block; margin-top: 6px; font-size: 0.95rem; }
 
+/* ── Setup wrap (wider for agent setup) ─────────────────────────────────────── */
+
+.setup-wrap-lg { max-width: 720px; }
+
+/* ── Agent setup list (step 2) ──────────────────────────────────────────────── */
+
+.agent-setup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.agent-setup-item {
+  padding: 16px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.agent-setup-item:first-child { padding-top: 0; }
+.agent-setup-item:last-child  { border-bottom: none; padding-bottom: 0; }
+
+.agent-setup-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.agent-setup-form {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.agent-url-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 13px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  outline: none;
+  font: inherit;
+  font-size: 0.9rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.agent-url-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.agent-configured-url {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.url-label { color: #64748b; }
+
+.url-value {
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+  color: #374151;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #6366f1;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 2px 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.btn-text:hover { color: #4338ca; }
+
+.setup-continue {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.setup-continue button {
+  padding: 12px 22px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 0.15s;
+}
+
+.setup-continue button:hover { background: #4338ca; }
+
+/* ── Dashboard: rich agent rows ─────────────────────────────────────────────── */
+
+.agent-item-rich {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.agent-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.agent-slack-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-left: 2px;
+}
+
+.slack-url-masked {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: #64748b;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slack-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.slack-edit-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.status-item-none {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────────── */
 
 @media (max-width: 520px) {
