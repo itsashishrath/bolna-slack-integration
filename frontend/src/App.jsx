@@ -1,53 +1,50 @@
-import { useEffect, useState } from 'react';
-import { getConfig, saveConfig } from './api/client';
+import { useState } from 'react';
+import { getStatus, saveConfig, saveBolnaApiKey } from './api/client';
 import ServerWakeScreen from './components/ServerWakeScreen.jsx';
 import SetupScreen from './components/SetupScreen.jsx';
-import ConfiguredScreen from './components/ConfiguredScreen.jsx';
+import BolnaSetupScreen from './components/BolnaSetupScreen.jsx';
+import DashboardScreen from './components/DashboardScreen.jsx';
+
+// stages: waking | loading | slack-setup | bolna-setup | dashboard
 
 function App() {
   const [stage, setStage] = useState('waking');
-  const [config, setConfig] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    let active = true;
-
-    const loadConfig = async () => {
-      setError('');
-      const configResult = await getConfig();
-      if (!active) return;
-
-      if (configResult.ok && configResult.data) {
-        setConfig(configResult.data);
-        setStage('configured');
-      } else {
-        setStage('setup');
-      }
-    };
-
-    if (stage === 'loading-config') {
-      loadConfig();
+  const loadStatus = async () => {
+    setStage('loading');
+    const result = await getStatus();
+    if (!result.ok) {
+      setStage('slack-setup');
+      return;
     }
-
-    return () => {
-      active = false;
-    };
-  }, [stage]);
-
-  const handleHealthy = () => {
-    setStage('loading-config');
+    const { slack_configured, bolna_configured } = result.data;
+    if (!slack_configured) {
+      setStage('slack-setup');
+    } else if (!bolna_configured) {
+      setStage('bolna-setup');
+    } else {
+      setStage('dashboard');
+    }
   };
 
-  const handleConfigSaved = async (url) => {
+  const handleSlackSaved = async (url) => {
     setError('');
     const result = await saveConfig(url);
     if (result.ok) {
-      setConfig(result.data);
-      setStage('configured');
+      setStage('bolna-setup');
       return true;
     }
+    setError(result.data?.detail || 'Unable to save config.');
+    return false;
+  };
 
-    setError(result.error || 'Unable to save config.');
+  const handleBolnaSaved = async (apiKey) => {
+    const result = await saveBolnaApiKey(apiKey);
+    if (result.ok) {
+      setStage('dashboard');
+      return true;
+    }
     return false;
   };
 
@@ -55,27 +52,29 @@ function App() {
     <div className="app-shell">
       <header className="app-header">
         <div>
-          <h1>Bolna → Slack</h1>
-          <p>Integration dashboard for the call alert webhook.</p>
+          <h1>Bolna <span className="arrow">→</span> Slack</h1>
+          <p>Manage agents, webhooks, and call alerts from one place.</p>
         </div>
       </header>
 
       <main>
-        {stage === 'waking' && <ServerWakeScreen onHealthy={handleHealthy} />}
+        {stage === 'waking' && <ServerWakeScreen onHealthy={loadStatus} />}
 
-        {stage === 'setup' && (
-          <SetupScreen onConfigSaved={handleConfigSaved} initialError={error} />
-        )}
-
-        {stage === 'configured' && config && (
-          <ConfiguredScreen config={config} />
-        )}
-
-        {stage === 'loading-config' && (
+        {stage === 'loading' && (
           <div className="status-card">
-            <p>Loading configuration…</p>
+            <div className="spinner" />
           </div>
         )}
+
+        {stage === 'slack-setup' && (
+          <SetupScreen onConfigSaved={handleSlackSaved} initialError={error} />
+        )}
+
+        {stage === 'bolna-setup' && (
+          <BolnaSetupScreen onApiKeySaved={handleBolnaSaved} />
+        )}
+
+        {stage === 'dashboard' && <DashboardScreen />}
       </main>
     </div>
   );
