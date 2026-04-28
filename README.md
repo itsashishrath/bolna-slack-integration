@@ -8,8 +8,7 @@ A FastAPI middleware and React dashboard that connects Bolna Voice AI to Slack. 
 
 > 🌐 **[bolna-slack-integration.vercel.app](https://bolna-slack-integration.vercel.app/)**
 
-> 📹 **[Watch the walkthrough on Loom](#)**  
-> *(replace `#` with your Loom recording URL)*
+> 📹 **[Watch the walkthrough on Loom](https://www.loom.com/share/3dd6b75fb1ac42d29f5760e78c7ab434)**
 
 ---
 
