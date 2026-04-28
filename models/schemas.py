@@ -18,6 +18,7 @@ class ConfigRequest(BaseModel):
 class ConfigResponse(BaseModel):
     slack_webhook_url: str
     configured_at: str
+    last_call_id: Optional[str] = None
 
 
 class BolnaWebhookPayload(BaseModel):
